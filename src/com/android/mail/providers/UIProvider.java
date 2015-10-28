@@ -2388,6 +2388,11 @@ public class UIProvider {
          * Integer extra containing the update unseen count for the account/folder.
          */
         public static final String EXTRA_UPDATED_UNSEEN_COUNT = "notification_updated_unseen_count";
+
+        /**
+         * Integer extra containing the email ID from the database.
+         */
+        public static final String EXTRA_EMAIL_ID = "email_id";
     }
 
     public static final class EditSettingsExtras {

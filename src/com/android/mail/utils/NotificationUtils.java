@@ -28,6 +28,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.MailTo;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Looper;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -715,6 +716,10 @@ public class NotificationUtils {
                         return;
                     }
 
+                    // Add email ID to notification intent
+                    notificationIntent.putExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, cursor.getInt(0));
+                    LogUtils.d(LOG_TAG, "Notification intent email_id: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+
                     clickIntent = createClickPendingIntent(context, notificationIntent);
 
                     configureLatestEventInfoFromConversation(context, account, folderPreferences,
@@ -1179,6 +1184,12 @@ public class NotificationUtils {
         if (unreadCount > 1) {
             notificationBuilder.setNumber(unreadCount);
         }
+
+        // Add email ID to notification
+        Bundle bundle = new Bundle();
+        bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+        LogUtils.d(LOG_TAG, "Notification email ID: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+        notificationBuilder.setExtras(bundle);
 
         notificationBuilder.setContentIntent(clickIntent);
     }
