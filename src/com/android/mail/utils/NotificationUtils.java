@@ -558,7 +558,7 @@ public class NotificationUtils {
                     notificationMap.size(), folder.name, getAttention, ignoreUnobtrusiveSetting);
         } else {
             LogUtils.i(LOG_TAG, "Validating Notification, mapSize: %d "
-                    + "getAttention: %b ignoreUnobtrusive: %b", notificationMap.size(),
+                            + "getAttention: %b ignoreUnobtrusive: %b", notificationMap.size(),
                     getAttention, ignoreUnobtrusiveSetting);
         }
         // The number of unread messages for this account and label.
@@ -718,7 +718,7 @@ public class NotificationUtils {
 
                     // Add email ID to notification intent
                     notificationIntent.putExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, cursor.getInt(0));
-                    LogUtils.d(LOG_TAG, "Notification intent email_id: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+                    LogUtils.i(LOG_TAG, "Notification intent email_id: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
 
                     clickIntent = createClickPendingIntent(context, notificationIntent);
 
@@ -1108,6 +1108,12 @@ public class NotificationUtils {
                             int conversationNotificationId = getNotificationId(
                                     summaryNotificationId, conversation.hashCode());
 
+                            // Add email ID to notification (when building a multi-email notification)
+                            Bundle bundle = new Bundle();
+                            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(0));
+                            LogUtils.i(LOG_TAG, "Notification email ID (multiple): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
+                            conversationNotif.setExtras(bundle);
+
                             final NotificationCompat.WearableExtender conversationWearExtender =
                                     new NotificationCompat.WearableExtender();
                             final ConfigResult result =
@@ -1166,6 +1172,12 @@ public class NotificationUtils {
             } else {
                 wearableExtender.setBackground(getDefaultWearableBg(context));
             }
+
+            // Add email ID to notification (for building single email notification)
+            Bundle bundle = new Bundle();
+            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+            LogUtils.i(LOG_TAG, "Notification email ID (single): " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+            notificationBuilder.setExtras(bundle);
         }
 
         // Build the notification ticker
@@ -1184,12 +1196,6 @@ public class NotificationUtils {
         if (unreadCount > 1) {
             notificationBuilder.setNumber(unreadCount);
         }
-
-        // Add email ID to notification
-        Bundle bundle = new Bundle();
-        bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
-        LogUtils.d(LOG_TAG, "Notification email ID: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
-        notificationBuilder.setExtras(bundle);
 
         notificationBuilder.setContentIntent(clickIntent);
     }
