@@ -1122,7 +1122,7 @@ public class NotificationUtils {
                             LogUtils.i(LOG_TAG, "conversation uri: " + conversationUri);
                             markReadNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
 
-                            notificationBuilder.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
+                            conversationNotif.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
                                     context, conversationNotificationId, markReadNotificationIntent, 0));
 
                             // Add email ID to notification (when building a multi-email notification)
