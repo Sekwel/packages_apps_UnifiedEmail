@@ -702,6 +702,7 @@ public class NotificationUtils {
                     if (launchConversationMode) {
                         notificationIntent = createViewConversationIntent(context, account, folder,
                                 cursor);
+
                     } else {
                         notificationIntent = createViewConversationIntent(context, account, folder,
                                 null);
@@ -1108,6 +1109,22 @@ public class NotificationUtils {
                             int conversationNotificationId = getNotificationId(
                                     summaryNotificationId, conversation.hashCode());
 
+                            // Add "Mark As Read" action to Email
+                            final Intent markReadNotificationIntent =
+                                    new Intent(MailIntentService.ACTION_MARK_MESSAGE_AS_READ);
+                            markReadNotificationIntent.setPackage(context.getPackageName());
+
+                            markReadNotificationIntent.setData(Utils.appendVersionQueryParameter(context,
+                                    folder.folderUri.fullUri));
+                            markReadNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
+                            markReadNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
+                            Uri conversationUri = conversation.uri;
+                            LogUtils.i(LOG_TAG, "conversation uri: " + conversationUri);
+                            markReadNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
+
+                            notificationBuilder.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
+                                    context, conversationNotificationId, markReadNotificationIntent, 0));
+
                             // Add email ID to notification (when building a multi-email notification)
                             Bundle bundle = new Bundle();
                             bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(0));
@@ -1161,6 +1178,26 @@ public class NotificationUtils {
             // Move the cursor to the most recent unread conversation
             seekToLatestUnreadConversation(conversationCursor);
 
+            // Add "Mark As Read" action to Email
+            Conversation conversation = new Conversation(conversationCursor);
+            int conversationNotificationId = getNotificationId(
+                    summaryNotificationId, conversation.hashCode());
+
+            final Intent markReadNotificationIntent =
+                    new Intent(MailIntentService.ACTION_MARK_MESSAGE_AS_READ);
+            markReadNotificationIntent.setPackage(context.getPackageName());
+
+            markReadNotificationIntent.setData(Utils.appendVersionQueryParameter(context,
+                    folder.folderUri.fullUri));
+            markReadNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
+            markReadNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
+            Uri conversationUri = conversation.uri;
+            LogUtils.i(LOG_TAG, "conversation uri: " + conversationUri);
+            markReadNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
+
+            notificationBuilder.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
+                    context, conversationNotificationId, markReadNotificationIntent, 0));
+
             final ConfigResult result = configureNotifForOneConversation(context, account,
                     folderPreferences, notificationBuilder, wearableExtender, conversationCursor,
                     notificationIntent, folder, when, res, isInbox, notificationLabelName,
@@ -1176,7 +1213,7 @@ public class NotificationUtils {
             // Add email ID to notification (for building single email notification)
             Bundle bundle = new Bundle();
             bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
-            LogUtils.i(LOG_TAG, "Notification email ID (single): " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+            LogUtils.i(LOG_TAG, "Notification email ID (single): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
             notificationBuilder.setExtras(bundle);
         }
 
@@ -1642,6 +1679,18 @@ public class NotificationUtils {
      * Use content resolver to update a conversation.  Should not be called from a main thread.
      */
     public static void markConversationAsReadAndSeen(Context context, Uri conversationUri) {
+        LogUtils.v(LOG_TAG, "markConversationAsReadAndSeen=%s", conversationUri);
+
+        final ContentValues values = new ContentValues(2);
+        values.put(UIProvider.ConversationColumns.SEEN, Boolean.TRUE);
+        values.put(UIProvider.ConversationColumns.READ, Boolean.TRUE);
+        context.getContentResolver().update(conversationUri, values, null, null);
+    }
+
+    /**
+     * Use content resolver to update a conversation.  Should not be called from a main thread.
+     */
+    public static void markConversationAsRead(Context context, Uri conversationUri) {
         LogUtils.v(LOG_TAG, "markConversationAsReadAndSeen=%s", conversationUri);
 
         final ContentValues values = new ContentValues(2);

@@ -42,6 +42,9 @@ public class MailIntentService extends IntentService {
     public static final String ACTION_CLEAR_NEW_MAIL_NOTIFICATIONS =
             "com.android.mail.action.CLEAR_NEW_MAIL_NOTIFICATIONS";
 
+    public static final String ACTION_MARK_MESSAGE_AS_READ =
+            "com.android.mail.action.MARK_MESSAGE_AS_READ";
+
     /**
      * After user replies an email from Wear, it marks the conversation as read and resend
      * notifications.
@@ -118,6 +121,15 @@ public class MailIntentService extends IntentService {
             StorageLowState.setIsStorageLow(true);
         } else if (Intent.ACTION_DEVICE_STORAGE_OK.equals(action)) {
             StorageLowState.setIsStorageLow(false);
+        } else if (ACTION_MARK_MESSAGE_AS_READ.equals(action)) {
+            final Account account = intent.getParcelableExtra(Utils.EXTRA_ACCOUNT);
+            final Folder folder = intent.getParcelableExtra(Utils.EXTRA_FOLDER);
+            final Uri conversationUri = intent.getParcelableExtra(Utils.EXTRA_CONVERSATION);
+
+            // Mark the conversation as read and refresh the notifications.
+            NotificationUtils.markConversationAsReadAndSeen(this, conversationUri);
+            NotificationUtils.resendNotifications(this, false, account.uri,
+                    folder.folderUri, getContactFetcher());
         }
     }
 
