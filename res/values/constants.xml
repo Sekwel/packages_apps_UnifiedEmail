@@ -81,7 +81,7 @@
     <integer name="attachment_preview_max_size">256</integer>
 
     <!-- The timeout, in milliseconds, before the "Undo" notification is removed. -->
-    <integer name="undo_notification_timeout">6000</integer>
+    <integer name="undo_notification_timeout">0</integer>
 
     <!-- The max number of contact images to show in a conversation list item -->
     <integer name="max_list_item_images">4</integer>

@@ -47,6 +47,7 @@ import android.util.SparseArray;
 import com.android.emailcommon.mail.Address;
 import com.android.mail.EmailAddress;
 import com.android.mail.MailIntentService;
+import com.android.mail.NotificationActionIntentService;
 import com.android.mail.R;
 import com.android.mail.analytics.Analytics;
 import com.android.mail.browse.ConversationItemView;
@@ -380,8 +381,8 @@ public class NotificationUtils {
         final Set<NotificationKey> keys = notificationMap.keySet();
         for (NotificationKey notification : keys) {
             final Folder folder = notification.folder;
-            final int notificationId =
-                    getNotificationId(notification.account.getAccountManagerAccount(), folder);
+            //final int notificationId =
+                    //getNotificationId(notification.account.getAccountManagerAccount(), folder);
 
             // Only resend notifications if the notifications are from the same folder
             // and same account as the undo notification that was previously displayed.
@@ -396,15 +397,16 @@ public class NotificationUtils {
             LogUtils.d(LOG_TAG, "resendNotifications - resending %s / %s",
                     notification.account.uri, folder.folderUri);
 
-            final NotificationAction undoableAction =
-                    NotificationActionUtils.sUndoNotifications.get(notificationId);
-            if (undoableAction == null) {
+            // Skip creating undo action
+            //final NotificationAction undoableAction =
+                    //NotificationActionUtils.sUndoNotifications.get(notificationId);
+            //if (undoableAction == null) {
                 validateNotifications(context, folder, notification.account, true,
                         false, notification, contactFetcher);
-            } else {
+            //} else {
                 // Create an undo notification
-                NotificationActionUtils.createUndoNotification(context, undoableAction);
-            }
+                //NotificationActionUtils.createUndoNotification(context, undoableAction);
+            //}
         }
     }
 
@@ -667,9 +669,6 @@ public class NotificationUtils {
                     folder.folderUri.fullUri));
             cancelNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
             cancelNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
-
-            notification.setDeleteIntent(PendingIntent.getService(
-                    context, notificationId, cancelNotificationIntent, 0));
 
             // Ensure that the notification is cleared when the user selects it
             notification.setAutoCancel(true);
@@ -1109,7 +1108,7 @@ public class NotificationUtils {
                             int conversationNotificationId = getNotificationId(
                                     summaryNotificationId, conversation.hashCode());
 
-                            // Add "Mark As Read" action to Email
+                            // Add "Mark As Read" Action to each Email in Notification
                             final Intent markReadNotificationIntent =
                                     new Intent(MailIntentService.ACTION_MARK_MESSAGE_AS_READ);
                             markReadNotificationIntent.setPackage(context.getPackageName());
@@ -1119,11 +1118,19 @@ public class NotificationUtils {
                             markReadNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
                             markReadNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
                             Uri conversationUri = conversation.uri;
-                            LogUtils.i(LOG_TAG, "conversation uri: " + conversationUri);
                             markReadNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
 
                             conversationNotif.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
                                     context, conversationNotificationId, markReadNotificationIntent, 0));
+
+                            // Add "Delete" Action to each Email in Notification
+                            final Intent deleteIntent = new Intent(NotificationActionIntentService.ACTION_DESTRUCT);
+                            deleteIntent.setPackage(context.getPackageName());
+                            deleteIntent.setData(conversation.uri);
+                            final PendingIntent deletePendingIntent = PendingIntent.getService(context,
+                                    conversationNotificationId, deleteIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+                            conversationNotif.setDeleteIntent(deletePendingIntent);
 
                             // Add email ID to notification (when building a multi-email notification)
                             Bundle bundle = new Bundle();
@@ -1178,7 +1185,7 @@ public class NotificationUtils {
             // Move the cursor to the most recent unread conversation
             seekToLatestUnreadConversation(conversationCursor);
 
-            // Add "Mark As Read" action to Email
+            // Add "Mark As Read" Action to Email Notification
             Conversation conversation = new Conversation(conversationCursor);
             int conversationNotificationId = getNotificationId(
                     summaryNotificationId, conversation.hashCode());
@@ -1192,11 +1199,19 @@ public class NotificationUtils {
             markReadNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
             markReadNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
             Uri conversationUri = conversation.uri;
-            LogUtils.i(LOG_TAG, "conversation uri: " + conversationUri);
             markReadNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
 
             notificationBuilder.addAction(R.drawable.ic_archive_wht_24dp, "Mark Read", PendingIntent.getService(
                     context, conversationNotificationId, markReadNotificationIntent, 0));
+
+            // Add "Delete" Action to Email Notification
+            final Intent deleteIntent = new Intent(NotificationActionIntentService.ACTION_DESTRUCT);
+            deleteIntent.setPackage(context.getPackageName());
+            deleteIntent.setData(conversation.uri);
+            final PendingIntent deletePendingIntent = PendingIntent.getService(context,
+                    conversationNotificationId, deleteIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+            notificationBuilder.setDeleteIntent(deletePendingIntent);
 
             final ConfigResult result = configureNotifForOneConversation(context, account,
                     folderPreferences, notificationBuilder, wearableExtender, conversationCursor,
@@ -1679,18 +1694,6 @@ public class NotificationUtils {
      * Use content resolver to update a conversation.  Should not be called from a main thread.
      */
     public static void markConversationAsReadAndSeen(Context context, Uri conversationUri) {
-        LogUtils.v(LOG_TAG, "markConversationAsReadAndSeen=%s", conversationUri);
-
-        final ContentValues values = new ContentValues(2);
-        values.put(UIProvider.ConversationColumns.SEEN, Boolean.TRUE);
-        values.put(UIProvider.ConversationColumns.READ, Boolean.TRUE);
-        context.getContentResolver().update(conversationUri, values, null, null);
-    }
-
-    /**
-     * Use content resolver to update a conversation.  Should not be called from a main thread.
-     */
-    public static void markConversationAsRead(Context context, Uri conversationUri) {
         LogUtils.v(LOG_TAG, "markConversationAsReadAndSeen=%s", conversationUri);
 
         final ContentValues values = new ContentValues(2);

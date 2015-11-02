@@ -134,14 +134,23 @@ public class NotificationActionIntentService extends IntentService {
             NotificationActionUtils.cancelUndoNotification(context, notificationAction);
         } else if (ACTION_ARCHIVE_REMOVE_LABEL.equals(action) || ACTION_DELETE.equals(action)) {
             // All we need to do is switch to an Undo notification
-            NotificationActionUtils.createUndoNotification(context, notificationAction);
+            //NotificationActionUtils.createUndoNotification(context, notificationAction);
+            //NotificationActionUtils.registerUndoTimeout(context, notificationAction);
 
-            NotificationActionUtils.registerUndoTimeout(context, notificationAction);
+            // Skip creating undo action
+            NotificationActionUtils.processDestructiveAction(this, notificationAction);
+            NotificationActionUtils.resendNotifications(context, notificationAction.getAccount(),
+                    notificationAction.getFolder());
         } else {
             if (ACTION_UNDO_TIMEOUT.equals(action) || ACTION_DESTRUCT.equals(action)) {
                 // Process the action
-                NotificationActionUtils.cancelUndoTimeout(this, notificationAction);
-                NotificationActionUtils.processUndoNotification(this, notificationAction);
+                //NotificationActionUtils.cancelUndoTimeout(this, notificationAction);
+                //NotificationActionUtils.processUndoNotification(this, notificationAction);
+
+                // Skip creating undo action
+                NotificationActionUtils.processDestructiveAction(this, notificationAction);
+                NotificationActionUtils.resendNotifications(context, notificationAction.getAccount(),
+                        notificationAction.getFolder());
             } else if (ACTION_MARK_READ.equals(action)) {
                 final Uri uri = message.uri;
 
