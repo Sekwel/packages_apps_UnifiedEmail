@@ -716,10 +716,6 @@ public class NotificationUtils {
                         return;
                     }
 
-                    // Add email ID to notification intent
-                    notificationIntent.putExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, cursor.getInt(0));
-                    LogUtils.i(LOG_TAG, "Notification intent email_id: " + notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
-
                     clickIntent = createClickPendingIntent(context, notificationIntent);
 
                     configureLatestEventInfoFromConversation(context, account, folderPreferences,
@@ -1134,7 +1130,7 @@ public class NotificationUtils {
 
                             // Add email ID to notification (when building a multi-email notification)
                             Bundle bundle = new Bundle();
-                            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(0));
+                            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(conversationCursor.getColumnIndex("_id")));
                             LogUtils.i(LOG_TAG, "Notification email ID (multiple): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
                             conversationNotif.setExtras(bundle);
 
@@ -1225,9 +1221,9 @@ public class NotificationUtils {
                 wearableExtender.setBackground(getDefaultWearableBg(context));
             }
 
-            // Add email ID to notification (for building single email notification)
+            // Add email ID to notification (when building a single email notification)
             Bundle bundle = new Bundle();
-            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, notificationIntent.getIntExtra(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, 0));
+            bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(conversationCursor.getColumnIndex("_id")));
             LogUtils.i(LOG_TAG, "Notification email ID (single): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
             notificationBuilder.setExtras(bundle);
         }
