@@ -1158,7 +1158,7 @@ public class NotificationUtils {
                             }
                         }
                     }
-                } while (numDigestItems <= maxNumDigestItems && conversationCursor.moveToNext());
+                } while (conversationCursor.moveToNext());
 
                 // Tag main digest notification with the senders
                 tagNotificationsWithPeople(notificationBuilder, senderAddressesSet);
