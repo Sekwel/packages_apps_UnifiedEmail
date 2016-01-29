@@ -1128,6 +1128,20 @@ public class NotificationUtils {
 
                             conversationNotif.setDeleteIntent(deletePendingIntent);
 
+                            // Add "Mark as Seen" Action to each Email in Notification
+                            final Intent invisibleNotificationIntent =
+                                    new Intent(MailIntentService.ACTION_MARK_MESSAGE_AS_SEEN);
+                            invisibleNotificationIntent.setPackage(context.getPackageName());
+
+                            invisibleNotificationIntent.setData(Utils.appendVersionQueryParameter(context,
+                                    folder.folderUri.fullUri));
+                            invisibleNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
+                            invisibleNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
+                            invisibleNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
+
+                            conversationNotif.addAction(R.drawable.ic_cancel_wht_24dp, "Mark Seen", PendingIntent.getService(
+                                    context, conversationNotificationId, invisibleNotificationIntent, 0));
+
                             // Add email ID to notification (when building a multi-email notification)
                             Bundle bundle = new Bundle();
                             bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(conversationCursor.getColumnIndex("_id")));
@@ -1208,6 +1222,20 @@ public class NotificationUtils {
                     conversationNotificationId, deleteIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
             notificationBuilder.setDeleteIntent(deletePendingIntent);
+
+            // Add "Mark as Seen" Action to each Email in Notification
+            final Intent invisibleNotificationIntent =
+                    new Intent(MailIntentService.ACTION_MARK_MESSAGE_AS_SEEN);
+            invisibleNotificationIntent.setPackage(context.getPackageName());
+
+            invisibleNotificationIntent.setData(Utils.appendVersionQueryParameter(context,
+                    folder.folderUri.fullUri));
+            invisibleNotificationIntent.putExtra(Utils.EXTRA_ACCOUNT, account);
+            invisibleNotificationIntent.putExtra(Utils.EXTRA_FOLDER, folder);
+            invisibleNotificationIntent.putExtra(Utils.EXTRA_CONVERSATION, conversationUri);
+
+            notificationBuilder.addAction(R.drawable.ic_cancel_wht_24dp, "Mark Seen", PendingIntent.getService(
+                    context, conversationNotificationId, invisibleNotificationIntent, 0));
 
             final ConfigResult result = configureNotifForOneConversation(context, account,
                     folderPreferences, notificationBuilder, wearableExtender, conversationCursor,
@@ -1695,6 +1723,17 @@ public class NotificationUtils {
         final ContentValues values = new ContentValues(2);
         values.put(UIProvider.ConversationColumns.SEEN, Boolean.TRUE);
         values.put(UIProvider.ConversationColumns.READ, Boolean.TRUE);
+        context.getContentResolver().update(conversationUri, values, null, null);
+    }
+
+    /**
+     * Use content resolver to update a conversation.  Should not be called from a main thread.
+     */
+    public static void markConversationAsSeen(Context context, Uri conversationUri) {
+        LogUtils.v(LOG_TAG, "markConversationAsSeen=%s", conversationUri);
+
+        final ContentValues values = new ContentValues(1);
+        values.put(UIProvider.ConversationColumns.SEEN, Boolean.TRUE);
         context.getContentResolver().update(conversationUri, values, null, null);
     }
 
