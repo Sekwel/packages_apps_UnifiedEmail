@@ -36,8 +36,10 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.text.BidiFormatter;
 import android.support.v4.util.ArrayMap;
+import android.text.Html;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
+import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 import android.text.style.TextAppearanceSpan;
@@ -53,6 +55,7 @@ import com.android.mail.analytics.Analytics;
 import com.android.mail.browse.ConversationItemView;
 import com.android.mail.browse.MessageCursor;
 import com.android.mail.browse.SendersView;
+import com.android.mail.compose.ComposeActivity;
 import com.android.mail.photo.ContactFetcher;
 import com.android.mail.photomanager.LetterTileProvider;
 import com.android.mail.preferences.AccountPreferences;
@@ -77,9 +80,11 @@ import com.google.common.io.Closeables;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -498,7 +503,7 @@ public class NotificationUtils {
             final int unseenCount, final Account account, final Folder folder,
             final boolean getAttention, final ContactFetcher contactFetcher) {
         LogUtils.d(LOG_TAG, "setNewEmailIndicator unreadCount = %d, unseenCount = %d, account = %s,"
-                + " folder = %s, getAttention = %b", unreadCount, unseenCount,
+                        + " folder = %s, getAttention = %b", unreadCount, unseenCount,
                 account.getEmailAddress(), folder.folderUri, getAttention);
 
         boolean ignoreUnobtrusiveSetting = false;
@@ -986,6 +991,8 @@ public class NotificationUtils {
         // Notification label name for user label notifications.
         final String notificationLabelName = isInbox ? null : folder.name;
 
+        Message messageForNotification = null;
+
         if (multipleUnseen) {
             // Build the string that describes the number of new messages
             final String newMessagesString = createTitle(context, unseenCount);
@@ -1044,6 +1051,7 @@ public class NotificationUtils {
                                 }
                                 from = getDisplayableSender(fromAddress);
                                 addEmailAddressToSet(fromAddress, senderAddressesSet);
+                                messageForNotification = message;
                             }
                             while (messageCursor.moveToPosition(messageCursor.getPosition() - 1)) {
                                 final Message message = messageCursor.getMessage();
@@ -1145,6 +1153,7 @@ public class NotificationUtils {
                             // Add email ID to notification (when building a multi-email notification)
                             Bundle bundle = new Bundle();
                             bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(conversationCursor.getColumnIndex("_id")));
+                            bundle.putString(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_MESSAGE, getQuotedTextForReply(context, messageForNotification));
                             LogUtils.i(LOG_TAG, "Notification email ID (multiple): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
                             conversationNotif.setExtras(bundle);
 
@@ -1195,8 +1204,30 @@ public class NotificationUtils {
             // Move the cursor to the most recent unread conversation
             seekToLatestUnreadConversation(conversationCursor);
 
-            // Add "Mark As Read" Action to Email Notification
             Conversation conversation = new Conversation(conversationCursor);
+            Cursor cursor = null;
+            MessageCursor messageCursor = null;
+            try {
+                final Uri.Builder uriBuilder = conversation.messageListUri.buildUpon();
+                uriBuilder.appendQueryParameter(
+                        UIProvider.LABEL_QUERY_PARAMETER, notificationLabelName);
+                cursor = context.getContentResolver().query(uriBuilder.build(),
+                        UIProvider.MESSAGE_PROJECTION, null, null, null);
+                messageCursor = new MessageCursor(cursor);
+
+                if (messageCursor.moveToPosition(messageCursor.getCount() - 1)) {
+                    messageForNotification = messageCursor.getMessage();
+                }
+            } finally {
+                if (messageCursor != null) {
+                    messageCursor.close();
+                }
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+
+            // Add "Mark As Read" Action to Email Notification
             int conversationNotificationId = getNotificationId(
                     summaryNotificationId, conversation.hashCode());
 
@@ -1252,6 +1283,7 @@ public class NotificationUtils {
             // Add email ID to notification (when building a single email notification)
             Bundle bundle = new Bundle();
             bundle.putInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID, conversationCursor.getInt(conversationCursor.getColumnIndex("_id")));
+            bundle.putString(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_MESSAGE, getQuotedTextForReply(context, messageForNotification));
             LogUtils.i(LOG_TAG, "Notification email ID (single): " + bundle.getInt(UIProvider.UpdateNotificationExtras.EXTRA_EMAIL_ID));
             notificationBuilder.setExtras(bundle);
         }
@@ -1274,6 +1306,45 @@ public class NotificationUtils {
         }
 
         notificationBuilder.setContentIntent(clickIntent);
+    }
+
+    private static String getQuotedTextForReply(Context context, Message refMessage) {
+        String HEADER_SEPARATOR = "<br type='attribution'>";
+        String BLOCKQUOTE_BEGIN = "<blockquote class=\"quote\" style=\""
+                + "margin:0 0 0 .8ex;" + "border-left:1px #ccc solid;" + "padding-left:1ex\">";
+        String BLOCKQUOTE_END = "</blockquote>";
+        String QUOTE_END = "</div>";
+        String htmlText = "";
+
+        if (refMessage.bodyHtml != null) {
+            htmlText = refMessage.bodyHtml;
+        } else if (refMessage.bodyText != null) {
+            // STOPSHIP Sanitize this
+            htmlText = Html.toHtml(new SpannedString(refMessage.bodyText));
+        } else {
+            htmlText = "";
+        }
+
+        StringBuilder quotedText = new StringBuilder();
+        DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT);
+        Date date = new Date(refMessage.dateReceivedMs);
+        Resources resources = context.getResources();
+        String sQuoteBegin = context.getResources().getString(R.string.quote_begin);
+        quotedText.append(sQuoteBegin);
+        // TODO: Add
+        quotedText
+                .append(String.format(
+                        resources.getString(R.string.reply_attribution),
+                        dateFormat.format(date),
+                        Utils.cleanUpString(
+                                refMessage.getFrom(), true)));
+        quotedText.append(HEADER_SEPARATOR);
+        quotedText.append(BLOCKQUOTE_BEGIN);
+        quotedText.append(htmlText);
+        quotedText.append(BLOCKQUOTE_END);
+        quotedText.append(QUOTE_END);
+
+        return quotedText.toString();
     }
 
     /**

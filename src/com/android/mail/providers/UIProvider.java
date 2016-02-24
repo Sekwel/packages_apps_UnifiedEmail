@@ -2393,6 +2393,11 @@ public class UIProvider {
          * Integer extra containing the email ID from the database.
          */
         public static final String EXTRA_EMAIL_ID = "email_id";
+
+        /**
+         * Parcelable extra containing the email ID from the database.
+         */
+        public static final String EXTRA_EMAIL_MESSAGE = "email_message";
     }
 
     public static final class EditSettingsExtras {
