@@ -67,7 +67,7 @@
     <!-- Whether to display folder colors in the widget -->
     <bool name="display_folder_colors_in_widget">true</bool>
 
-    <integer name="max_num_notification_digest_items">200</integer>
+    <integer name="max_num_notification_digest_items">20</integer>
 
     <!-- Wait at least this long for the webview to render conversation content before showing the loading dialog -->
     <integer name="conversationview_show_loading_delay">500</integer>
