@@ -2000,7 +2000,7 @@ public class NotificationUtils {
 
     public static void markSeen(final Context context, final Folder folder) {
         final Uri uri = folder.folderUri.fullUri;
-
+        System.out.println("laura folder uri = " + uri);
         final ContentValues values = new ContentValues(1);
         values.put(UIProvider.ConversationColumns.SEEN, 1);
 
